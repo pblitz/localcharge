@@ -1,0 +1,49 @@
+.lc-log {
+  margin-top: 1rem;
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  color: #e2e8f0;
+  padding: 1rem;
+}
+
+.lc-log header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.lc-log header h2 {
+  margin: 0;
+}
+
+.lc-log header button {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  color: inherit;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.4rem;
+  margin-left: 0.25rem;
+}
+
+.lc-log__entries {
+  display: grid;
+  gap: 0.6rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.lc-log__entries article {
+  background: #0d1117;
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #1e293b;
+}
+
+.lc-log__meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}

@@ -1,0 +1,161 @@
+.lc-panel {
+  background: #0d1117;
+  border: 1px solid #1f2a37;
+  border-radius: 1rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: #e2e8f0;
+}
+
+.lc-panel > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lc-panel > header button {
+  border: 1px dashed #334155;
+  background: transparent;
+  color: inherit;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.lc-panel__muted {
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.lc-chip {
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: capitalize;
+}
+
+.state-charging {
+  background: rgba(34, 197, 94, 0.18);
+  color: #4ade80;
+}
+
+.state-idle,
+.state-preparing,
+.state-pausing,
+.state-finished,
+.state-fault {
+  background: rgba(248, 250, 252, 0.1);
+}
+
+.lc-panel__content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.lc-panel__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  min-height: 140px;
+}
+
+.lc-chart {
+  width: 100%;
+  height: 180px;
+  background: #020617;
+  border-radius: 0.75rem;
+  border: 1px solid #1e293b;
+  padding: 0.25rem;
+}
+
+.lc-chart svg {
+  width: 100%;
+  height: 100%;
+}
+
+.lc-chart polyline {
+  fill: none;
+  stroke: #38bdf8;
+  stroke-width: 2;
+}
+
+.lc-chart line {
+  stroke: rgba(248, 250, 252, 0.2);
+  stroke-dasharray: 4;
+}
+
+.lc-panel__group strong {
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  color: #cbd5f5;
+}
+
+.lc-stat {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.lc-panel__group label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  gap: 0.2rem;
+}
+
+.lc-panel__group input[type="range"] {
+  accent-color: #38bdf8;
+}
+
+.lc-list,
+.lc-loglist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.lc-loglist li {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.lc-loglist span {
+  color: #94a3b8;
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.lc-panel__soc {
+  font-size: 0.9rem;
+}
+
+.lc-panel__footer {
+  margin-top: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.lc-panel__footer button {
+  flex: 1;
+  padding: 0.6rem;
+  border-radius: 0.6rem;
+  border: 1px solid #1e293b;
+  background: #1f2937;
+  color: inherit;
+  cursor: pointer;
+}
+
+.lc-panel__footer button:hover {
+  background: #273449;
+}
