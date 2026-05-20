@@ -37,6 +37,7 @@ This document defines the architectural and development principles for the Local
    - Unit tests for simulation logic (load manager, EMS decisions, OCPP state machine).
    - Component tests for critical UI elements.
    - Scenario tests (Playwright) for start/stop flows.
+   - Every feature branch/task must run a successful local build (`npm run build`) before it is marked done.
 
 4. **Code Quality**
    - ESLint + Prettier enforced via pre-commit hook.

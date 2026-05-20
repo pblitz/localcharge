@@ -4,6 +4,7 @@
 1. **Confirm Tech Stack** (React + Vite + TypeScript, Zustand, Tailwind, Recharts)
 2. **Wireframes** – sketch layout (charger panel, EMS panel, loads, logs, charts)
 3. **Data Model Definition** – describe TS interfaces (ChargingSession, Load, OcppMessage, MeterReading)
+4. **GitHub Pages Deployment** – add CI workflow (GitHub Actions) to build and publish the static site automatically
 
 ## Phase 1 – Simulation Core
 1. **Message Bus** – simple pub/sub for internal events
