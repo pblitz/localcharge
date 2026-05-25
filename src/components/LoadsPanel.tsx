@@ -3,9 +3,10 @@ import "./Panel.css";
 
 interface LoadsPanelProps {
   loads: Load[];
+  onLoadChange: (id: string, value: number) => void;
 }
 
-export function LoadsPanel({ loads }: LoadsPanelProps) {
+export function LoadsPanel({ loads, onLoadChange }: LoadsPanelProps) {
   return (
     <section className="lc-panel">
       <header>
@@ -23,7 +24,13 @@ export function LoadsPanel({ loads }: LoadsPanelProps) {
               <strong>{load.name}</strong>
               <span>{load.powerKw.toFixed(1)} kW</span>
             </div>
-            <input type="range" min={0} max={60} value={load.powerKw} readOnly />
+            <input
+              type="range"
+              min={0}
+              max={60}
+              value={load.powerKw}
+              onChange={(event) => onLoadChange(load.id, Number(event.target.value))}
+            />
             <small className="lc-panel__muted">Type: {load.type}</small>
           </div>
         ))}

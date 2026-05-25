@@ -159,3 +159,8 @@
 .lc-panel__footer button:hover {
   background: #273449;
 }
+
+.lc-panel__footer button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

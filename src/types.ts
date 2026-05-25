@@ -9,6 +9,8 @@ export interface ChargingSession {
   deliveredKwh: number;
   vehicleSocStart: number;
   vehicleSocTarget: number;
+  vehicleSocCurrent: number;
+  actualKw: number;
   state: ChargerState;
 }
 

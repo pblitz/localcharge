@@ -6,8 +6,11 @@ interface MeterPanelProps {
 }
 
 export function MeterPanel({ reading }: MeterPanelProps) {
-  const points = reading.history
-    .map((value, index) => `${(index / (reading.history.length - 1)) * 100},${100 - value}`)
+  const normalized = reading.history.map((value) =>
+    reading.limitKw ? Math.min(1, value / reading.limitKw) : 0,
+  );
+  const points = normalized
+    .map((value, index) => `${(index / Math.max(normalized.length - 1, 1)) * 100},${100 - value * 100}`)
     .join(" ");
 
   return (
@@ -27,12 +30,12 @@ export function MeterPanel({ reading }: MeterPanelProps) {
           <strong>Load Timeline</strong>
           <div className="lc-chart">
             <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-              <polyline points={points} />
-              <line x1="0" y1={100 - reading.limitKw} x2="100" y2={100 - reading.limitKw} />
+              <polyline points={points || "0,100"} />
+              <line x1="0" y1={0} x2="100" y2={0} />
             </svg>
           </div>
           <small className="lc-panel__muted">
-            Placeholder chart – real-time data will drive this soon.
+            Showing total site load as a percentage of the site limit.
           </small>
         </div>
       </div>

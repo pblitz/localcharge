@@ -3,9 +3,12 @@ import "./Panel.css";
 
 interface ChargerPanelProps {
   session: ChargingSession;
+  onStart: () => void;
+  onPause: () => void;
+  onStop: () => void;
 }
 
-export function ChargerPanel({ session }: ChargerPanelProps) {
+export function ChargerPanel({ session, onStart, onPause, onStop }: ChargerPanelProps) {
   return (
     <section className="lc-panel">
       <header>
@@ -22,6 +25,10 @@ export function ChargerPanel({ session }: ChargerPanelProps) {
           <div className="lc-stat">
             <span>Target power</span>
             <strong>{session.targetKw.toFixed(1)} kW</strong>
+          </div>
+          <div className="lc-stat">
+            <span>Actual power</span>
+            <strong>{session.actualKw.toFixed(1)} kW</strong>
           </div>
           <div className="lc-stat">
             <span>Delivered</span>
@@ -44,15 +51,25 @@ export function ChargerPanel({ session }: ChargerPanelProps) {
             <input type="range" value={session.vehicleSocTarget} readOnly />
           </label>
           <div className="lc-panel__soc">
-            {session.vehicleSocStart}% → {session.vehicleSocTarget}%
+            {session.vehicleSocStart}% → <span>{session.vehicleSocCurrent}%</span> → {session.vehicleSocTarget}%
           </div>
         </div>
       </div>
 
       <footer className="lc-panel__footer">
-        <button type="button">Start</button>
-        <button type="button">Pause</button>
-        <button type="button">Stop</button>
+        <button type="button" onClick={onStart} disabled={session.state === "charging"}>
+          Start
+        </button>
+        <button
+          type="button"
+          onClick={onPause}
+          disabled={session.state !== "charging"}
+        >
+          Pause
+        </button>
+        <button type="button" onClick={onStop} disabled={session.state === "idle"}>
+          Stop
+        </button>
       </footer>
     </section>
   );

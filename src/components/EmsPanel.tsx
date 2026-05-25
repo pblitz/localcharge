@@ -3,9 +3,10 @@ import "./Panel.css";
 
 interface EmsPanelProps {
   config: EmsConfig;
+  onSiteLimitChange: (value: number) => void;
 }
 
-export function EmsPanel({ config }: EmsPanelProps) {
+export function EmsPanel({ config, onSiteLimitChange }: EmsPanelProps) {
   return (
     <section className="lc-panel">
       <header>
@@ -23,10 +24,14 @@ export function EmsPanel({ config }: EmsPanelProps) {
             <span>Total</span>
             <strong>{config.siteLimitKw} kW</strong>
           </div>
-          <input type="range" min={10} max={200} value={config.siteLimitKw} readOnly />
-          <small className="lc-panel__muted">
-            Adjust limit to see EMS reaction (coming soon)
-          </small>
+          <input
+            type="range"
+            min={30}
+            max={180}
+            value={config.siteLimitKw}
+            onChange={(event) => onSiteLimitChange(Number(event.target.value))}
+          />
+          <small className="lc-panel__muted">Drag to tweak the site limit in real time.</small>
         </div>
 
         <div className="lc-panel__group">
