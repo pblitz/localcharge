@@ -18,24 +18,22 @@
    - Aggregate EV load + external loads
    - Produce Modbus-style register data
 
-## Phase 2 – User Interface
-1. **App Shell** – header, navigation, main grid layout
-2. **Charger Panel** – start/stop controls, EV settings, live status
-3. **EMS Panel** – site limit controls, decision log
-4. **Loads Panel** – list of loads, add/edit/remove, power sliders
-5. **Meter & Charts** – live graphs (total load vs limit, stacked contributions)
-6. **Log Console** – filterable view of OCPP + Modbus messages
+## Phase 2 – Multi-Charger Support
+1. **Simulation: Multi-Station** – refactor state store so multiple chargers can run simultaneously (individual sessions, SOC, throttling)
+2. **UI: Charger Grid** – allow adding/removing stations, per-station panels with live controls
+3. **EMS Awareness** – show how total EV load vs site limit is distributed between chargers (stacked view + per-port throttling info)
 
-## Phase 3 – Scenario & Persistence
-1. **Scenario Presets** – JSON definitions (e.g., “Single EV”, “Peak Afternoon”)
-2. **Save/Load** – export/import scenarios (localStorage + file download)
-3. **Time Controls** – play/pause simulation, adjustable speed (1x/2x)
+## Phase 3 – Protocol Visibility & Scenarios
+1. **Full OCPP Transcript** – log every request/response with payloads (JSON tree viewer + filters)
+2. **Scenario Presets** – JSON definitions (e.g., “Single EV”, “Peak Afternoon”) that can spawn multiple chargers
+3. **Save/Load** – export/import scenarios (localStorage + file download)
+4. **Time Controls** – play/pause simulation, adjustable speed (1x/2x)
 
 ## Phase 4 – Polish & Testing
 1. **Guided Tour / Help Tooltips**
 2. **Responsive Layout** – adapt for large monitors + tablets
-3. **Unit Tests** – state machines, load manager logic
-4. **Integration Tests** – start/stop flows, scenario loading
+3. **Unit Tests** – state machines, load manager logic (single + multi charger)
+4. **Integration Tests** – start/stop flows, scenario loading, OCPP logging
 5. **Docs** – update SPEC/CONSTITUTION, add user guide in `/docs`
 
 ---
