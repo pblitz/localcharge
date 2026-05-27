@@ -1,22 +1,30 @@
-import type { ChargingSession } from "../types";
+import type { ChargerStation } from "../types";
 import "./Panel.css";
 
 interface ChargerPanelProps {
-  session: ChargingSession;
+  station: ChargerStation;
   onStart: () => void;
   onPause: () => void;
   onStop: () => void;
+  onRemove: () => void;
+  canRemove: boolean;
 }
 
-export function ChargerPanel({ session, onStart, onPause, onStop }: ChargerPanelProps) {
+export function ChargerPanel({ station, onStart, onPause, onStop, onRemove, canRemove }: ChargerPanelProps) {
+  const { session, name } = station;
   return (
     <section className="lc-panel">
       <header>
         <div>
-          <h2>Charging Station</h2>
+          <h2>{name}</h2>
           <p className="lc-panel__muted">OCPP client simulator</p>
         </div>
-        <span className={`lc-chip state-${session.state}`}>{session.state}</span>
+        <div className="lc-panel__header-actions">
+          <span className={`lc-chip state-${session.state}`}>{session.state}</span>
+          <button type="button" onClick={onRemove} disabled={!canRemove}>
+            ✕
+          </button>
+        </div>
       </header>
 
       <div className="lc-panel__content">
@@ -60,11 +68,7 @@ export function ChargerPanel({ session, onStart, onPause, onStop }: ChargerPanel
         <button type="button" onClick={onStart} disabled={session.state === "charging"}>
           Start
         </button>
-        <button
-          type="button"
-          onClick={onPause}
-          disabled={session.state !== "charging"}
-        >
+        <button type="button" onClick={onPause} disabled={session.state !== "charging"}>
           Pause
         </button>
         <button type="button" onClick={onStop} disabled={session.state === "idle"}>

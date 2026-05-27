@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import { create } from "zustand";
 import { createMessageBus } from "../sim/bus";
 import type {
+  ChargerStation,
   ChargingSession,
   EmsConfig,
   Load,
@@ -10,37 +11,28 @@ import type {
 } from "../types";
 
 interface SimulationState {
-  session: ChargingSession;
+  stations: ChargerStation[];
   loads: Load[];
   ems: EmsConfig;
   meter: MeterReading;
   logs: ProtocolLogEntry[];
-  startCharging: () => void;
-  pauseCharging: () => void;
-  stopCharging: () => void;
+  startCharging: (stationId: string) => void;
+  pauseCharging: (stationId: string) => void;
+  stopCharging: (stationId: string) => void;
+  addStation: () => void;
+  removeStation: (stationId: string) => void;
   setLoadPower: (id: string, powerKw: number) => void;
   setSiteLimit: (limit: number) => void;
 }
 
 const BATTERY_KWH = 70;
 const TICK_MS = 1000;
-const MAX_LOGS = 200;
+const MAX_LOGS = 300;
+const HISTORY_POINTS = 120;
 
 const bus = createMessageBus();
 let ticker: ReturnType<typeof setInterval> | null = null;
-
-const baseSession: ChargingSession = {
-  id: "initial",
-  startedAt: Date.now(),
-  targetKw: 22,
-  requestedDurationMin: 45,
-  deliveredKwh: 0,
-  vehicleSocStart: 30,
-  vehicleSocTarget: 80,
-  vehicleSocCurrent: 30,
-  actualKw: 0,
-  state: "idle",
-};
+let stationCounter = 1;
 
 const baseLoads: Load[] = [
   { id: "l1", name: "HVAC", type: "sched", powerKw: 12 },
@@ -55,11 +47,49 @@ const baseEms: EmsConfig = {
   decisionLog: [],
 };
 
+function createSession(targetKw = 22, soc = 30): ChargingSession {
+  return {
+    id: nanoid(6),
+    startedAt: Date.now(),
+    targetKw,
+    requestedDurationMin: 45,
+    deliveredKwh: 0,
+    vehicleSocStart: soc,
+    vehicleSocTarget: 80,
+    vehicleSocCurrent: soc,
+    actualKw: 0,
+    state: "idle",
+  };
+}
+
+function nextStationName() {
+  return `Charger ${stationCounter++}`;
+}
+
+function createStation(name?: string, targetKw?: number, soc?: number): ChargerStation {
+  return {
+    id: nanoid(4).toUpperCase(),
+    name: name ?? nextStationName(),
+    session: createSession(targetKw, soc),
+  };
+}
+
+const baseStations: ChargerStation[] = [
+  createStation("Charger 1", 22, 30),
+  createStation("Charger 2", 11, 50),
+];
+stationCounter = baseStations.length + 1;
+
+const baseFacilityKw = baseLoads.reduce((sum, load) => sum + load.powerKw, 0);
+
 const baseMeter: MeterReading = {
   timestamp: Date.now(),
-  totalKw: 42,
+  totalKw: baseFacilityKw,
   limitKw: baseEms.siteLimitKw,
-  history: Array.from({ length: 20 }, () => 42),
+  history: Array.from({ length: HISTORY_POINTS }, () => baseFacilityKw),
+  evKw: 0,
+  facilityKw: baseFacilityKw,
+  perStationKw: baseStations.map((station) => ({ id: station.id, name: station.name, kw: 0 })),
 };
 
 function ensureTicker(get: () => SimulationState, set: (partial: Partial<SimulationState>) => void) {
@@ -73,81 +103,122 @@ function tickSimulation(
 ) {
   const state = getState();
   const dtHours = TICK_MS / 3_600_000;
-  const otherLoads = state.loads.reduce((sum, load) => sum + load.powerKw, 0);
+  const facilityKw = state.loads.reduce((sum, load) => sum + load.powerKw, 0);
+  const availableForChargers = Math.max(state.ems.siteLimitKw - facilityKw, 0);
+  const chargingStations = state.stations.filter((station) => station.session.state === "charging");
+  const totalDemand = chargingStations.reduce((sum, station) => sum + station.session.targetKw, 0);
+  const scaling = totalDemand > 0 ? Math.min(1, availableForChargers / totalDemand) : 0;
 
-  let session = state.session;
+  const wasThrottling = state.ems.activeCommands.length > 0;
+
   let ems = state.ems;
+  const updatedStations = state.stations.map((station) => {
+    let session = station.session;
 
-  if (session.state === "charging") {
-    const available = Math.max(ems.siteLimitKw - otherLoads, 0);
-    const actualKw = Math.min(session.targetKw, available);
-    const deliveredKwh = session.deliveredKwh + actualKw * dtHours;
-    const energyNeeded = ((session.vehicleSocTarget - session.vehicleSocStart) / 100) * BATTERY_KWH || 1;
-    const socProgress = Math.min(
-      session.vehicleSocStart + (deliveredKwh / energyNeeded) * (session.vehicleSocTarget - session.vehicleSocStart),
-      session.vehicleSocTarget,
-    );
+    if (session.state === "charging") {
+      const actualKwRaw = session.targetKw * (scaling || (availableForChargers > 0 ? 1 : 0));
+      const actualKw = Number(actualKwRaw.toFixed(2));
 
-    if (Math.abs(actualKw - session.actualKw) > 0.2) {
-      bus.publish("log", {
-        id: nanoid(),
-        timestamp: Date.now(),
-        channel: "OCPP",
-        direction: "csms->cp",
-        message: `SetChargingProfile → ${actualKw.toFixed(1)} kW`,
-        payload: { available },
-      });
-      ems = {
-        ...ems,
-        activeCommands: actualKw < session.targetKw ? [`Limit to ${actualKw.toFixed(1)} kW`] : [],
-        decisionLog:
-          actualKw < session.targetKw
-            ? [{ timestamp: Date.now(), message: "Site limit hit, throttling charger" }, ...ems.decisionLog].slice(0, 6)
-            : ems.decisionLog,
-      };
-    }
+      if (Math.abs(actualKw - session.actualKw) > 0.2) {
+        bus.publish("log", {
+          id: nanoid(),
+          timestamp: Date.now(),
+          channel: "OCPP",
+          direction: "csms->cp",
+          message: `SetChargingProfile → ${actualKw.toFixed(1)} kW`,
+          payload: { availableForChargers, totalDemand },
+          stationId: station.id,
+          stationName: station.name,
+        });
+      }
 
-    session = {
-      ...session,
-      actualKw,
-      deliveredKwh,
-      vehicleSocCurrent: Number(socProgress.toFixed(1)),
-    };
+      const deliveredKwh = session.deliveredKwh + actualKw * dtHours;
+      const energyNeeded = ((session.vehicleSocTarget - session.vehicleSocStart) / 100) * BATTERY_KWH || 1;
+      const socProgress = Math.min(
+        session.vehicleSocStart + (deliveredKwh / energyNeeded) * (session.vehicleSocTarget - session.vehicleSocStart),
+        session.vehicleSocTarget,
+      );
 
-    const targetEnergy = (session.targetKw * session.requestedDurationMin) / 60;
-    const reachedTargetEnergy = deliveredKwh >= targetEnergy;
-    const reachedSoc = session.vehicleSocCurrent >= session.vehicleSocTarget - 0.1;
-    if (reachedTargetEnergy || reachedSoc) {
       session = {
         ...session,
-        state: "finished",
-        endedAt: Date.now(),
-        actualKw: 0,
+        actualKw,
+        deliveredKwh,
+        vehicleSocCurrent: Number(socProgress.toFixed(1)),
       };
-      bus.publish("log", {
-        id: nanoid(),
-        timestamp: Date.now(),
-        channel: "OCPP",
-        direction: "cp->csms",
-        message: "StopTransaction (completed)",
-      });
-    }
-  } else if (session.actualKw !== 0) {
-    session = { ...session, actualKw: 0 };
-  }
 
-  const totalKw = session.actualKw + otherLoads;
-  const history = [...state.meter.history.slice(-59), totalKw];
+      const targetEnergy = (session.targetKw * session.requestedDurationMin) / 60;
+      const reachedTargetEnergy = deliveredKwh >= targetEnergy;
+      const reachedSoc = session.vehicleSocCurrent >= session.vehicleSocTarget - 0.1;
+      if (reachedTargetEnergy || reachedSoc) {
+        session = {
+          ...session,
+          state: "finished",
+          endedAt: Date.now(),
+          actualKw: 0,
+        };
+        bus.publish("log", {
+          id: nanoid(),
+          timestamp: Date.now(),
+          channel: "OCPP",
+          direction: "cp->csms",
+          message: "StopTransaction (completed)",
+          stationId: station.id,
+          stationName: station.name,
+        });
+      }
+    } else if (session.actualKw !== 0) {
+      session = { ...session, actualKw: 0 };
+    }
+
+    return { ...station, session };
+  });
+
+  const evKw = updatedStations.reduce((sum, station) => sum + station.session.actualKw, 0);
+  const totalKw = facilityKw + evKw;
+
+  const throttledStations = updatedStations.filter(
+    (station) => station.session.state === "charging" && station.session.actualKw + 0.2 < station.session.targetKw,
+  );
+  const isThrottling = throttledStations.length > 0;
+  const updatedCommands = throttledStations.map(
+    (station) => `${station.name}: ${station.session.actualKw.toFixed(1)} / ${station.session.targetKw.toFixed(1)} kW`,
+  );
+
+  const decisionLog = isThrottling !== wasThrottling
+    ? [
+        {
+          timestamp: Date.now(),
+          message: isThrottling
+            ? "Site limit reached – throttling chargers"
+            : "Throttle cleared – full power restored",
+        },
+        ...state.ems.decisionLog,
+      ].slice(0, 6)
+    : state.ems.decisionLog;
+
+  ems = {
+    ...ems,
+    activeCommands: updatedCommands,
+    decisionLog,
+  };
+
   const meter: MeterReading = {
     timestamp: Date.now(),
     totalKw,
     limitKw: ems.siteLimitKw,
-    history,
+    history: [...state.meter.history.slice(-(HISTORY_POINTS - 1)), totalKw],
+    evKw,
+    facilityKw,
+    perStationKw: updatedStations.map((station) => ({
+      id: station.id,
+      name: station.name,
+      kw: station.session.actualKw,
+    })),
   };
 
   bus.publish("meter", meter);
 
-  setState({ session, meter, ems });
+  setState({ stations: updatedStations, meter, ems });
 }
 
 export const useSimulationStore = create<SimulationState>()((set, get) => {
@@ -158,67 +229,128 @@ export const useSimulationStore = create<SimulationState>()((set, get) => {
   ensureTicker(get, (partial) => set(() => partial));
 
   return {
-    session: baseSession,
+    stations: baseStations,
     loads: baseLoads,
     ems: baseEms,
     meter: baseMeter,
     logs: [],
-    startCharging: () => {
+    startCharging: (stationId) => {
       const now = Date.now();
       set((state) => {
-        if (state.session.state === "charging") return state;
-        const session: ChargingSession = {
-          ...state.session,
-          id: nanoid(6),
-          startedAt: now,
-          endedAt: undefined,
-          deliveredKwh: 0,
-          vehicleSocCurrent: state.session.vehicleSocStart,
-          actualKw: state.session.targetKw,
-          state: "charging",
-        };
-        bus.publish("log", {
-          id: nanoid(),
-          timestamp: now,
-          channel: "OCPP",
-          direction: "cp->csms",
-          message: "Authorize / StartTransaction",
-          payload: { targetKw: session.targetKw },
+        const stations = state.stations.map((station) => {
+          if (station.id !== stationId) return station;
+          if (station.session.state === "charging") return station;
+          const session: ChargingSession = {
+            ...station.session,
+            id: nanoid(6),
+            startedAt: now,
+            endedAt: undefined,
+            deliveredKwh: 0,
+            vehicleSocStart: station.session.vehicleSocCurrent,
+            state: "preparing",
+          };
+          bus.publish("log", {
+            id: nanoid(),
+            timestamp: now,
+            channel: "OCPP",
+            direction: "cp->csms",
+            message: "Authorize",
+            stationId: station.id,
+            stationName: station.name,
+            payload: { targetKw: session.targetKw },
+          });
+          const updatedStation: ChargerStation = { ...station, session: { ...session, state: "charging" } };
+          return updatedStation;
         });
-        return { session };
+        return { stations };
       });
     },
-    pauseCharging: () => {
+    pauseCharging: (stationId) => {
       set((state) => {
-        if (state.session.state !== "charging") return state;
+        const stations = state.stations.map((station) => {
+          if (station.id !== stationId) return station;
+          if (station.session.state !== "charging") return station;
+          bus.publish("log", {
+            id: nanoid(),
+            timestamp: Date.now(),
+            channel: "OCPP",
+            direction: "cp->csms",
+            message: "RemoteStopRequest",
+            stationId: station.id,
+            stationName: station.name,
+          });
+          const updated: ChargingSession = { ...station.session, state: "pausing", actualKw: 0 };
+          const updatedStation: ChargerStation = { ...station, session: updated };
+          return updatedStation;
+        });
+        return { stations };
+      });
+    },
+    stopCharging: (stationId) => {
+      set((state) => {
+        const stations = state.stations.map((station) => {
+          if (station.id !== stationId) return station;
+          if (station.session.state === "idle") return station;
+          const session: ChargingSession = {
+            ...station.session,
+            state: "finished",
+            endedAt: Date.now(),
+            actualKw: 0,
+          };
+          bus.publish("log", {
+            id: nanoid(),
+            timestamp: Date.now(),
+            channel: "OCPP",
+            direction: "cp->csms",
+            message: "StopTransaction",
+            stationId: station.id,
+            stationName: station.name,
+          });
+          const updatedStation: ChargerStation = { ...station, session };
+          return updatedStation;
+        });
+        return { stations };
+      });
+    },
+    addStation: () => {
+      set((state) => {
+        const station = createStation();
         bus.publish("log", {
           id: nanoid(),
           timestamp: Date.now(),
-          channel: "OCPP",
+          channel: "System",
           direction: "cp->csms",
-          message: "RemoteStopRequest",
+          message: `${station.name} added to the site`,
+          stationId: station.id,
+          stationName: station.name,
         });
-        const updated: ChargingSession = { ...state.session, state: "pausing", actualKw: 0 };
-        return { session: updated };
+        const meter: MeterReading = {
+          ...state.meter,
+          perStationKw: [...state.meter.perStationKw, { id: station.id, name: station.name, kw: 0 }],
+        };
+        return { stations: [...state.stations, station], meter };
       });
     },
-    stopCharging: () => {
+    removeStation: (stationId) => {
       set((state) => {
-        if (state.session.state === "idle") return state;
-        const session: ChargingSession = {
-          ...state.session,
-          state: "finished",
-          endedAt: Date.now(),
-          actualKw: 0,
-        };
+        if (state.stations.length <= 1) return state;
+        const station = state.stations.find((item) => item.id === stationId);
+        if (!station) return state;
         bus.publish("log", {
           id: nanoid(),
           timestamp: Date.now(),
-          channel: "OCPP",
+          channel: "System",
           direction: "cp->csms",
-          message: "StopTransaction",
+          message: `${station.name} removed from the site`,
+          stationId,
+          stationName: station.name,
         });
-        return { session };
+        const stations = state.stations.filter((item) => item.id !== stationId);
+        const meter: MeterReading = {
+          ...state.meter,
+          perStationKw: state.meter.perStationKw.filter((entry) => entry.id !== stationId),
+        };
+        return { stations, meter };
       });
     },
     setLoadPower: (id, powerKw) => {

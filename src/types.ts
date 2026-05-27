@@ -26,6 +26,9 @@ export interface MeterReading {
   totalKw: number;
   limitKw: number;
   history: number[];
+  evKw: number;
+  facilityKw: number;
+  perStationKw: Array<{ id: string; name: string; kw: number }>;
 }
 
 export interface EmsConfig {
@@ -33,6 +36,12 @@ export interface EmsConfig {
   strategy: "throttle-ev" | "shed-loads" | "mixed";
   activeCommands: string[];
   decisionLog: Array<{ timestamp: number; message: string }>;
+}
+
+export interface ChargerStation {
+  id: string;
+  name: string;
+  session: ChargingSession;
 }
 
 export type OcppMessageDirection = "csms->cp" | "cp->csms";
@@ -44,4 +53,6 @@ export interface ProtocolLogEntry {
   channel: "OCPP" | "Modbus" | "System";
   message: string;
   payload?: Record<string, unknown>;
+  stationId?: string;
+  stationName?: string;
 }

@@ -31,6 +31,41 @@ body {
   gap: 1rem;
 }
 
+.lc-grid__full {
+  grid-column: 1 / -1;
+}
+
+.lc-chargers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: #050b18;
+  border: 1px solid #1f2a37;
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.lc-chargers__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lc-chargers__header button {
+  border: 1px solid #1d4ed8;
+  background: rgba(37, 99, 235, 0.2);
+  color: #bfdbfe;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.lc-chargers__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
 @media (max-width: 768px) {
   .lc-grid {
     grid-template-columns: 1fr;

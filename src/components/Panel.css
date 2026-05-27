@@ -16,13 +16,25 @@
   gap: 0.5rem;
 }
 
-.lc-panel > header button {
-  border: 1px dashed #334155;
-  background: transparent;
-  color: inherit;
-  padding: 0.35rem 0.75rem;
-  border-radius: 0.5rem;
+.lc-panel__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lc-panel__header-actions button {
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.1);
+  color: #fca5a5;
+  width: 34px;
+  height: 34px;
+  border-radius: 0.6rem;
   cursor: pointer;
+}
+
+.lc-panel__header-actions button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .lc-panel__muted {
@@ -115,7 +127,9 @@
 }
 
 .lc-list,
-.lc-loglist {
+.lc-loglist,
+.lc-ems__distribution,
+.lc-panel__chips {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -123,6 +137,27 @@
   flex-direction: column;
   gap: 0.35rem;
   font-size: 0.8rem;
+}
+
+.lc-ems__distribution li,
+.lc-panel__chips li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid #1f2a37;
+  border-radius: 0.6rem;
+  padding: 0.4rem 0.6rem;
+}
+
+.lc-ems__distribution small {
+  display: block;
+  color: #94a3b8;
+  text-transform: capitalize;
+}
+
+.lc-panel__chips strong {
+  color: #f8fafc;
 }
 
 .lc-loglist li {
@@ -138,6 +173,11 @@
 
 .lc-panel__soc {
   font-size: 0.9rem;
+}
+
+.lc-panel__soc span {
+  color: #38bdf8;
+  font-weight: 600;
 }
 
 .lc-panel__footer {

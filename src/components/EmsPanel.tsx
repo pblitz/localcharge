@@ -1,12 +1,13 @@
-import type { EmsConfig } from "../types";
+import type { ChargerStation, EmsConfig } from "../types";
 import "./Panel.css";
 
 interface EmsPanelProps {
   config: EmsConfig;
+  stations: ChargerStation[];
   onSiteLimitChange: (value: number) => void;
 }
 
-export function EmsPanel({ config, onSiteLimitChange }: EmsPanelProps) {
+export function EmsPanel({ config, stations, onSiteLimitChange }: EmsPanelProps) {
   return (
     <section className="lc-panel">
       <header>
@@ -35,12 +36,33 @@ export function EmsPanel({ config, onSiteLimitChange }: EmsPanelProps) {
         </div>
 
         <div className="lc-panel__group">
-          <strong>Active Commands</strong>
-          <ul className="lc-list">
-            {config.activeCommands.map((cmd) => (
-              <li key={cmd}>{cmd}</li>
+          <strong>Per-Charger Allocation</strong>
+          <ul className="lc-ems__distribution">
+            {stations.map((station) => (
+              <li key={station.id}>
+                <div>
+                  <strong>{station.name}</strong>
+                  <small>{station.session.state}</small>
+                </div>
+                <span>
+                  {station.session.actualKw.toFixed(1)} / {station.session.targetKw.toFixed(1)} kW
+                </span>
+              </li>
             ))}
           </ul>
+        </div>
+
+        <div className="lc-panel__group">
+          <strong>Active Commands</strong>
+          {config.activeCommands.length === 0 ? (
+            <small className="lc-panel__muted">No throttling active</small>
+          ) : (
+            <ul className="lc-list">
+              {config.activeCommands.map((cmd) => (
+                <li key={cmd}>{cmd}</li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="lc-panel__group">
