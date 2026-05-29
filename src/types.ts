@@ -44,6 +44,31 @@ export interface ChargerStation {
   session: ChargingSession;
 }
 
+export interface ScenarioConfig {
+  id: string;
+  name: string;
+  description: string;
+  siteLimitKw: number;
+  stations: Array<{
+    name: string;
+    targetKw: number;
+    soc: number;
+  }>;
+  loads: Load[];
+}
+
+export interface SavedScenarioPayload {
+  title: string;
+  note?: string;
+  createdAt: number;
+  siteLimitKw: number;
+  stations: Array<{
+    name: string;
+    session: ChargingSession;
+  }>;
+  loads: Load[];
+}
+
 export type OcppMessageDirection = "csms->cp" | "cp->csms";
 
 export interface ProtocolLogEntry {

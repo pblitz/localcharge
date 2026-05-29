@@ -33,20 +33,24 @@ export function LogConsole({ entries }: LogConsoleProps) {
         </div>
       </header>
       <div className="lc-log__entries">
-        {filteredEntries.map((entry) => (
-          <article key={entry.id}>
-            <div className="lc-log__meta">
-              <span>{new Date(entry.timestamp).toLocaleTimeString()}</span>
-              <span>{entry.channel}</span>
-              <span>{entry.direction}</span>
-              {entry.stationName && <span className="lc-log__station">{entry.stationName}</span>}
-            </div>
-            <p>{entry.message}</p>
-            {entry.payload && (
-              <pre className="lc-log__payload">{JSON.stringify(entry.payload, null, 2)}</pre>
-            )}
-          </article>
-        ))}
+        {filteredEntries.length === 0 ? (
+          <p className="lc-log__empty">Noch keine Protokolle für diesen Filter.</p>
+        ) : (
+          filteredEntries.map((entry) => (
+            <article key={entry.id}>
+              <div className="lc-log__meta">
+                <span>{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                <span>{entry.channel}</span>
+                <span>{entry.direction}</span>
+                {entry.stationName && <span className="lc-log__station">{entry.stationName}</span>}
+              </div>
+              <p>{entry.message}</p>
+              {entry.payload && (
+                <pre className="lc-log__payload">{JSON.stringify(entry.payload, null, 2)}</pre>
+              )}
+            </article>
+          ))
+        )}
       </div>
     </section>
   );
